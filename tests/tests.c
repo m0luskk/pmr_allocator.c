@@ -31,18 +31,18 @@ void state_allocator_free_all(void* a) {
   allocator->offset = 0;
 }
 
-void* local_alloc(size_t size, size_t align) {
+void* global_alloc(size_t size, size_t align) {
   printf("aligned state allocator alloc size %zu align %zu\n", size, align);
   return NULL;
 }
-void local_free(void* p) {
+void global_free(void* p) {
   printf("local destroy at at %p\n", p);
 }
 
 START_TEST(global_aligned) {
-  struct q_pmr_allocator a = Q_PMR_ALLOCATOR(Q_PMR_GLOBAL_ALIGNED_ALLOC_F(local_alloc), Q_PMR_GLOBAL_FREE_F(local_free));
+  struct q_pmr_allocator a = Q_PMR_ALLOCATOR(Q_PMR_GLOBAL_ALIGNED_ALLOC_F(global_alloc), Q_PMR_GLOBAL_FREE_F(global_free));
 
-  void* mem = Q_PMR_ALLOCATE(&a, sizeof(int));
+  void* mem = Q_PMR_ALLOCATE(&a, sizeof(int), 4);
   ck_assert(mem == NULL);
 
   Q_PMR_FREE(&a, mem);
