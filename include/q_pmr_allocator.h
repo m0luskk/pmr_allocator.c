@@ -3,6 +3,14 @@
 
 #include <stdlib.h>
 
+#ifdef __GNUC__
+#define _Q_NODISCARD_ATTR __attribute__((warn_unused_result))
+#elif defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 202311L) 
+#define _Q_NODISCARD_ATTR [[nodiscard]]
+#else
+#define _Q_NODISCARD_ATTR
+#endif
+
 enum _q_f_type {
   _Q_F_TYPE_STATE,
   _Q_F_TYPE_STATE_ALIGNED,
@@ -77,41 +85,18 @@ typedef struct q_pmr_allocator {
 (struct _q_alloc_f_tagged ) { .f = { ._g_a = F }, .t = _Q_F_TYPE_GLOBAL_ALIGNED }
 
 // ---
-
-static inline struct q_pmr_allocator _q_pmr_state_allocator_wrap(void* allocator, struct _q_alloc_f_tagged alloc_f, struct _q_free_f_tagged free_f) {
-  if (alloc_f.t == free_f.t) {
-    switch (alloc_f.t) {
-      case _Q_F_TYPE_GLOBAL: return (struct q_pmr_allocator) { ._allocator = allocator, ._alloc_f = { .f = {._g = alloc_f.f._g} }, ._free_f = { .f = { ._g = free_f.f._g } } };
-      case _Q_F_TYPE_STATE: return (struct q_pmr_allocator) { ._allocator = allocator, ._alloc_f = { .f = {._s = alloc_f.f._s} }, ._free_f = { .f = { ._s = free_f.f._s } } };
-      case _Q_F_TYPE_GLOBAL_ALIGNED: abort(); // unreachable
-      case _Q_F_TYPE_STATE_ALIGNED: abort(); // unreachable
-    }
-  } else {
-    switch (alloc_f.t) {
-      case _Q_F_TYPE_GLOBAL: return (struct q_pmr_allocator) { ._allocator = allocator, ._alloc_f = { .f = {._g = alloc_f.f._g} }, ._free_f = { .f = { ._s = free_f.f._s } } };
-      case _Q_F_TYPE_STATE:  return (struct q_pmr_allocator) { ._allocator = allocator, ._alloc_f = { .f = {._s = alloc_f.f._s} }, ._free_f = { .f = { ._g = free_f.f._g } } };
-      case _Q_F_TYPE_GLOBAL_ALIGNED: {
-        switch (free_f.t) {
-          case _Q_F_TYPE_GLOBAL: return (struct q_pmr_allocator) { ._allocator = allocator, ._alloc_f = { .f = {._g_a = alloc_f.f._g_a} }, ._free_f = { .f = { ._g = free_f.f._g } } };
-          case _Q_F_TYPE_STATE:  return (struct q_pmr_allocator) { ._allocator = allocator, ._alloc_f = { .f = {._g_a = alloc_f.f._g_a} }, ._free_f = { .f = { ._s = free_f.f._s } } };
-          case _Q_F_TYPE_GLOBAL_ALIGNED: abort(); // unreachable
-          case _Q_F_TYPE_STATE_ALIGNED: abort(); // unreachable
-        }
-      }
-      case _Q_F_TYPE_STATE_ALIGNED: {
-        switch (free_f.t) {
-          case _Q_F_TYPE_GLOBAL: return (struct q_pmr_allocator) { ._allocator = allocator, ._alloc_f = { .f = {._s_a = alloc_f.f._s_a} }, ._free_f = { .f = { ._g = free_f.f._g } } };
-          case _Q_F_TYPE_STATE:  return (struct q_pmr_allocator) { ._allocator = allocator, ._alloc_f = { .f = {._s_a = alloc_f.f._s_a} }, ._free_f = { .f = { ._s = free_f.f._s } } };
-          case _Q_F_TYPE_GLOBAL_ALIGNED: abort(); // unreachable
-          case _Q_F_TYPE_STATE_ALIGNED: abort(); // unreachable
-        }
-      }
-    }
-  }
+_Q_NODISCARD_ATTR
+static inline struct q_pmr_allocator 
+_q_pmr_state_allocator_wrap(void* allocator, struct _q_alloc_f_tagged alloc_f, struct _q_free_f_tagged free_f) {
+  return (struct q_pmr_allocator) { ._allocator = allocator, ._alloc_f = alloc_f, ._free_f = free_f };
 }
+
+_Q_NODISCARD_ATTR
 static inline struct q_pmr_allocator _q_pmr_allocator_wrap(struct _q_alloc_f_tagged alloc_f, struct _q_free_f_tagged free_f) {
   return _q_pmr_state_allocator_wrap(NULL, alloc_f, free_f);
 }
+
+_Q_NODISCARD_ATTR
 static inline void* q_pmr_allocator_alloc(struct q_pmr_allocator* pm, size_t n, size_t align) {
   switch (pm->_alloc_f.t) {
     case _Q_F_TYPE_STATE: return pm->_alloc_f.f._s(pm->_allocator, n);
@@ -120,6 +105,7 @@ static inline void* q_pmr_allocator_alloc(struct q_pmr_allocator* pm, size_t n, 
     case _Q_F_TYPE_GLOBAL_ALIGNED: return pm->_alloc_f.f._g_a(n, align);
   }
 }
+
 static inline void q_pmr_allocator_free(struct q_pmr_allocator* pm, void* dst) {
   if (pm->_allocator) {
     if (dst) {

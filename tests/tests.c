@@ -31,8 +31,8 @@ void state_allocator_free_all(void* a) {
   allocator->offset = 0;
 }
 
-void* global_alloc(size_t size, size_t align) {
-  printf("aligned state allocator alloc size %zu align %zu\n", size, align);
+void* global_alloc(size_t size) {
+  printf("aligned state allocator alloc size %zu align\n");
   return NULL;
 }
 void global_free(void* p) {
@@ -40,7 +40,7 @@ void global_free(void* p) {
 }
 
 START_TEST(global_aligned) {
-  struct q_pmr_allocator a = Q_PMR_ALLOCATOR(Q_PMR_GLOBAL_ALIGNED_ALLOC_F(global_alloc), Q_PMR_GLOBAL_FREE_F(global_free));
+  struct q_pmr_allocator a = Q_PMR_ALLOCATOR(Q_PMR_GLOBAL_ALLOC_F(global_alloc), Q_PMR_GLOBAL_FREE_F(global_free));
 
   void* mem = Q_PMR_ALLOCATE(&a, sizeof(int), 4);
   ck_assert(mem == NULL);
@@ -53,7 +53,11 @@ START_TEST(global) {
   struct q_pmr_allocator a = Q_PMR_ALLOCATOR(Q_PMR_GLOBAL_ALLOC_F(malloc), Q_PMR_GLOBAL_FREE_F(free));
 
   void* mem = Q_PMR_ALLOCATE(&a, sizeof(int));
+  ck_assert(a._alloc_f.t == _Q_F_TYPE_GLOBAL);
+  ck_assert(a._alloc_f.f._g == malloc);
   ck_assert(mem != NULL);
+  int* i = mem;
+  *i = 5;
 
   Q_PMR_FREE(&a, mem);
 }
@@ -64,6 +68,8 @@ START_TEST(state) {
 
   void* mem = Q_PMR_ALLOCATE(&pmr_a, sizeof(int));
   ck_assert(a.offset == sizeof(int));
+  ck_assert(pmr_a._alloc_f.t == _Q_F_TYPE_STATE);
+  ck_assert(pmr_a._free_f.t == _Q_F_TYPE_STATE);
   
   Q_PMR_FREE(&pmr_a, mem);
   ck_assert(a.offset == sizeof(int) - 1);
