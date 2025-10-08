@@ -104,6 +104,7 @@ static inline void* q_pmr_allocator_alloc(struct q_pmr_allocator* pm, size_t n, 
     case _Q_F_TYPE_GLOBAL: return pm->_alloc_f.f._g(n);
     case _Q_F_TYPE_GLOBAL_ALIGNED: return pm->_alloc_f.f._g_a(n, align);
   }
+  return NULL;
 }
 
 static inline void q_pmr_allocator_free(struct q_pmr_allocator* pm, void* dst) {
