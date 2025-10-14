@@ -3,12 +3,14 @@
 
 #include <stdlib.h>
 
-#ifdef __GNUC__
-#define _Q_NODISCARD_ATTR __attribute__((warn_unused_result))
-#elif defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 202311L) 
-#define _Q_NODISCARD_ATTR [[nodiscard]]
-#else
-#define _Q_NODISCARD_ATTR
+#if !defined(_Q_NODISCARD_ATTR) || !defined(Q_NODISCARD_ATTR)
+  #if defined(__GNUC__) && (__STDC_VERSION__ < 202311L) 
+    #define _Q_NODISCARD_ATTR __attribute__((warn_unused_result))
+  #elif defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 202311L) 
+    #define _Q_NODISCARD_ATTR [[nodiscard]]
+  #else
+    #define _Q_NODISCARD_ATTR
+  #endif
 #endif
 
 enum _q_f_type {
